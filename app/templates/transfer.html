@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Initiate Handover: {{ evidence.evidence_id }}</h2>
+<div class="card" style="max-width: 600px;">
+    <p>Transferring custody of <strong>{{ evidence.name }}</strong>.</p>
+    
+    <div class="alert alert-warning">
+        The recipient must log in and explicitly accept this transfer before the chain of custody is updated.
+    </div>
+    
+    <form method="POST">
+        <div class="form-group">
+            <label for="receiver_id">Recipient (Authorized Personnel)</label>
+            <select id="receiver_id" name="receiver_id" class="form-control" required>
+                <option value="">-- Select Recipient --</option>
+                {% for user in users %}
+                <option value="{{ user.id }}">{{ user.name }} ({{ user.role.name }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="purpose">Reason for Transfer</label>
+            <input type="text" id="purpose" name="purpose" class="form-control" required placeholder="e.g., Forensic Analysis, Court Presentation">
+        </div>
+        
+        <div class="form-group">
+            <label for="location">Handover Location (Optional)</label>
+            <input type="text" id="location" name="location" class="form-control">
+        </div>
+        
+        <div style="margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-primary">Initiate Transfer Request</button>
+            <a href="{{ url_for('evidence.view_evidence', evidence_id=evidence.evidence_id) }}" class="btn" style="background-color: var(--secondary-color); color: white; margin-left: 1rem;">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

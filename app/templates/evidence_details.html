@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Evidence Details: {{ evidence.evidence_id }}</h2>
+    <div>
+        {% if evidence.current_custodian_id == session['user_id'] and evidence.status != 'TRANSFER_PENDING' %}
+        <a href="{{ url_for('custody.transfer', evidence_id=evidence.evidence_id) }}" class="btn btn-primary">Initiate Handover</a>
+        {% endif %}
+        
+        <form method="POST" action="{{ url_for('verification.verify', evidence_id=evidence.evidence_id) }}" style="display: inline-block;">
+            <button type="submit" class="btn btn-success">Verify Integrity (SHA-256)</button>
+        </form>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="card">
+        <h3>Metadata</h3>
+        <table style="background: var(--bg-main); border-radius: 0.25rem;">
+            <tr><th style="width: 35%;">Case ID</th><td>{{ evidence.case.case_number }}</td></tr>
+            <tr><th>Name</th><td>{{ evidence.name }}</td></tr>
+            <tr><th>Type</th><td>{{ evidence.type }}</td></tr>
+            <tr><th>Original Filename</th><td>{{ evidence.original_filename }}</td></tr>
+            <tr><th>File Size</th><td>{{ evidence.file_size }} bytes</td></tr>
+            <tr><th>Current Custodian</th><td><strong>{{ evidence.current_custodian.name }}</strong></td></tr>
+            <tr><th>Status</th>
+                <td>
+                    {% if evidence.status == 'TAMPER_DETECTED' %}
+                    <span class="badge badge-danger">{{ evidence.status }}</span>
+                    {% elif evidence.status == 'VERIFIED' %}
+                    <span class="badge badge-success">{{ evidence.status }}</span>
+                    {% else %}
+                    <span class="badge badge-warning">{{ evidence.status }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr><th>Collection Time</th><td>{{ evidence.collection_timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td></tr>
+        </table>
+        
+        <div style="margin-top: 1.5rem;">
+            <h4>Security Fingerprint</h4>
+            <div style="background-color: var(--secondary-color); padding: 1rem; border-radius: 0.25rem; word-break: break-all; font-family: monospace; border: 1px solid var(--border);">
+                <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.25rem;">ORIGINAL SHA-256 HASH</div>
+                {{ evidence.sha256_hash }}
+            </div>
+        </div>
+    </div>
+    
+    <div class="card" style="text-align: center;">
+        <h3>Tracking QR Code</h3>
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Scan for quick access & verification</p>
+        <img src="{{ url_for('static', filename='qr/' + evidence.evidence_id + '.png') }}" alt="QR Code" style="border: 4px solid white; border-radius: 0.5rem; max-width: 200px;">
+        <div style="margin-top: 1rem; font-weight: bold; letter-spacing: 1px;">{{ evidence.evidence_id }}</div>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Chain of Custody Timeline</h3>
+    <div class="timeline">
+        {% for event in custody_events %}
+        <div class="timeline-item">
+            <div style="font-weight: bold; color: var(--accent-color);">{{ event.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} - {{ event.action }}</div>
+            <div style="margin-top: 0.5rem;">
+                {% if event.sender %}From: <strong>{{ event.sender.name }}</strong>{% endif %}
+                {% if event.receiver %} ? To: <strong>{{ event.receiver.name }}</strong>{% endif %}
+            </div>
+            {% if event.purpose %}
+            <div style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">Purpose: {{ event.purpose }}</div>
+            {% endif %}
+            <div style="font-size: 0.75rem; color: var(--border); margin-top: 0.25rem; font-family: monospace;">Event Hash: {{ event.current_event_hash[:16] }}...</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+

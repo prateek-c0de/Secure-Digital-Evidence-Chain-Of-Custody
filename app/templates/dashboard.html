@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Dashboard</h2>
+<p>Welcome, <strong>{{ user.name }}</strong> ({{ user.role.name }})</p>
+
+<div class="grid-2">
+    <div class="card">
+        <h3>System Overview</h3>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+            <div>
+                <div style="font-size: 2rem; font-weight: bold; color: var(--accent-color);">{{ stats.total_evidence }}</div>
+                <div style="color: var(--text-muted);">Total Evidence</div>
+            </div>
+            <div>
+                <div style="font-size: 2rem; font-weight: bold; color: var(--success);">{{ stats.my_evidence }}</div>
+                <div style="color: var(--text-muted);">In My Custody</div>
+            </div>
+            <div>
+                <div style="font-size: 2rem; font-weight: bold; color: var(--warning);">{{ stats.pending_transfers }}</div>
+                <div style="color: var(--text-muted);">Pending Transfers</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3>Action Required</h3>
+        {% if my_pending_transfers %}
+            <ul style="list-style: none; padding: 0;">
+            {% for transfer in my_pending_transfers %}
+                <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
+                    <strong>{{ transfer.evidence.evidence_id }}</strong> - {{ transfer.evidence.name }}<br>
+                    <small style="color: var(--text-muted);">From: {{ transfer.sender.name }} | Reason: {{ transfer.purpose }}</small><br>
+                    <form method="POST" action="{{ url_for('custody.accept', event_id=transfer.id) }}" style="margin-top: 0.5rem;">
+                        <button type="submit" class="btn btn-success">Accept Transfer</button>
+                    </form>
+                </li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <p style="color: var(--text-muted);">No pending transfers requiring your attention.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <h3>Recent Evidence</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in recent_evidence %}
+            <tr>
+                <td>{{ item.evidence_id }}</td>
+                <td>{{ item.name }}</td>
+                <td>
+                    {% if item.status == 'VERIFIED' %}
+                    <span class="badge badge-success">VERIFIED</span>
+                    {% elif item.status == 'TAMPER_DETECTED' %}
+                    <span class="badge badge-danger">TAMPER DETECTED</span>
+                    {% else %}
+                    <span class="badge badge-warning">{{ item.status }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ item.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    <a href="{{ url_for('evidence.view_evidence', evidence_id=item.evidence_id) }}" class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">View</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">No evidence registered yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+

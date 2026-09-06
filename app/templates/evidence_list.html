@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Evidence Directory</h2>
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Evidence ID</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Custodian</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in evidence_list %}
+            <tr>
+                <td>{{ item.evidence_id }}</td>
+                <td>{{ item.name }}</td>
+                <td>{{ item.type }}</td>
+                <td>{{ item.current_custodian.name }}</td>
+                <td>
+                    {% if item.status == 'TAMPER_DETECTED' %}
+                    <span class="badge badge-danger">{{ item.status }}</span>
+                    {% elif item.status == 'VERIFIED' %}
+                    <span class="badge badge-success">{{ item.status }}</span>
+                    {% else %}
+                    <span class="badge badge-warning">{{ item.status }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{{ url_for('evidence.view_evidence', evidence_id=item.evidence_id) }}" class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">Details</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+

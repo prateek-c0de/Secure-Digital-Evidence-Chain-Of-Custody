@@ -1,0 +1,11 @@
+Flask
+Flask-SQLAlchemy
+Flask-Migrate
+Flask-WTF
+Werkzeug
+pymysql
+cryptography
+python-dotenv
+qrcode
+Pillow
+pytest
