@@ -4,6 +4,8 @@ import os
 class HashService:
     @staticmethod
     def calculate_sha256(file_path):
+        if not file_path:
+            return None
         sha256 = hashlib.sha256()
         try:
             with open(file_path, 'rb') as f:
