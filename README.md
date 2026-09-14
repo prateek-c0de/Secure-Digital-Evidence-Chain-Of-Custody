@@ -1,20 +1,49 @@
-# Secure Digital Evidence Chain-of-Custody
+# 🔐 Secure Digital Evidence Chain of Custody
 
-This is a secure digital evidence management and chain-of-custody platform developed for the Smart India Hackathon (SIH) 2026.
+A secure web-based platform for managing digital evidence and investigation documents while maintaining **integrity, traceability, and a verifiable chain of custody**.
 
-## Features
-- **Evidence Registration**: Register digital evidence with metadata.
-- **SHA-256 Hashing**: Generates a cryptographic fingerprint of evidence for integrity verification.
-- **QR Code Tracking**: Generates QR codes for evidence tracking.
-- **Chain of Custody**: Tracks handover and custody events securely.
-- **Tamper-Evident Audit Log**: Hash-linked audit trail for operations.
-- **Integrity Verification**: Compare original SHA-256 hash with current file state.
+## 🎯 Problem
 
-## Setup Instructions
-1. Setup a Python virtual environment.
-2. Install dependencies: pip install -r requirements.txt.
-3. Copy .env.example to .env and configure your database settings.
-4. Setup database: python scripts/setup_db.py.
-5. Seed demo data: python scripts/seed_data.py.
-6. Run the app: python run.py.
+Digital evidence can pass through multiple people during an investigation. Without proper tracking, it becomes difficult to verify:
 
+- Who collected the evidence
+- Who transferred or received it
+- When it was handled
+- Whether the file was modified
+
+## 💡 Solution
+
+Our platform provides a centralized system to register, store, transfer, track, and verify digital evidence.
+
+### Key Features
+
+- 🔐 Secure authentication & role-based access
+- 📁 Case and evidence management
+- #️⃣ SHA-256 evidence hashing
+- 📱 QR-based evidence identification
+- 🔄 Digital chain-of-custody tracking
+- 🧾 Tamper-evident audit logs
+- 🔎 Evidence/document search
+- ⚠️ Automatic hash mismatch detection
+- 🔒 Secure storage and access control
+
+## 🔄 Workflow
+
+```text
+Evidence Collection
+        ↓
+Evidence Registration
+        ↓
+Metadata + SHA-256 Hash
+        ↓
+Secure Storage
+        ↓
+QR Generation
+        ↓
+Transfer / Handover
+        ↓
+Audit Log
+        ↓
+Hash Verification
+        ↓
+Verified / Tamper Detected
