@@ -28,7 +28,7 @@ Our platform provides a centralized system to register, store, transfer, track, 
 - 🔒 Secure storage and access control
 
 ## 🔄 Workflow
-
+'''text
 Evidence Collection
         ↓
 Evidence Registration
@@ -48,6 +48,7 @@ Hash Verification
 Verified / Tamper Detected
 
 🛠️ Tch Stack
+'''text
 Component	  Technology
 Frontend	  HTML, CSS, JavaScript
 Backend	Python,   Flask
@@ -59,6 +60,7 @@ Security	  Authentication, RBAC, Encryption
 Audit	          Hash-linked Audit Log
 
 🏗️ Architecture
+'''text
 Frontend
    ↓
 Flask Backend
@@ -72,6 +74,7 @@ QR / Evidence Tracking
 Audit & Chain of Custody
 
 🔒 Evidence Verification
+'''text
 When evidence is registered, a SHA-256 hash is generated.
 Original Hash == Current Hash
         ↓
