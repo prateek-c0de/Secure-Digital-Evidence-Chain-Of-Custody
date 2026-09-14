@@ -1,75 +1,147 @@
 {% extends "base.html" %}
+{% block header_title %}Tamper-Evident Audit Trail{% endblock %}
+
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <h2>System Audit Log</h2>
-    <button id="verifyChainBtn" class="btn btn-primary">Verify Audit Chain Integrity</button>
+<!-- Audit Chain Status Banner (Dynamic) -->
+<div id="chainStatusBanner" style="display: none; margin-bottom: 1.5rem; padding: 1.25rem 1.5rem; border-radius: var(--radius-lg); border-left: 4px solid;">
 </div>
 
-<div id="verificationResult" style="display: none; margin-bottom: 1rem;"></div>
-
 <div class="card">
-    <table style="font-size: 0.9rem;">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Timestamp</th>
-                <th>Event Type</th>
-                <th>User</th>
-                <th>Evidence ID</th>
-                <th>Hash Link</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for log in logs %}
-            <tr>
-                <td>{{ log.id }}</td>
-                <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                <td><span class="badge badge-info" style="background: rgba(59, 130, 246, 0.2); color: var(--accent-color);">{{ log.event_type }}</span></td>
-                <td>{{ log.user.name if log.user else 'SYSTEM' }}</td>
-                <td>{{ log.evidence.evidence_id if log.evidence else '-' }}</td>
-                <td style="font-family: monospace; font-size: 0.8rem; color: var(--text-muted);" title="Prev: {{ log.previous_hash }}">
-                    ...{{ log.current_hash[-12:] }}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="card-header">
+        <h3 class="card-title">Hash-Linked Audit Ledger</h3>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <span style="font-size: 0.8rem; color: var(--text-muted); font-family: var(--font-ui);">{{ logs|length }} Immutable Records</span>
+            <button id="verifyChainBtn" class="btn btn-primary">&#128274; Verify Audit Chain Integrity</button>
+        </div>
+    </div>
+
+    <!-- Explainer -->
+    <div style="background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-secondary); display: flex; align-items: flex-start; gap: 1rem;">
+        <div style="font-size: 1.5rem; color: var(--accent); line-height: 1;" aria-hidden="true">&#128279;</div>
+        <div>
+            <strong style="color: var(--text-primary); font-family: var(--font-ui);">Cryptographic Ledger</strong><br>
+            Each record incorporates the previous record's hash into its own calculation, creating an unbreakable cryptographic chain. Any modification to a past record breaks the chain and is detected instantly upon verification.
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 50px;">Seq</th>
+                    <th style="width: 170px;">Timestamp</th>
+                    <th>Event Category</th>
+                    <th>System User</th>
+                    <th>Evidence ID</th>
+                    <th>Chain Hash (Tail)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td style="color: var(--text-muted); font-family: var(--font-mono); font-size: 0.8rem;">#{{ log.id }}</td>
+                    <td style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-secondary);">
+                        {{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                    </td>
+                    <td>
+                        {% if 'TAMPER' in log.event_type or 'FAIL' in log.event_type %}
+                        <span class="badge badge-danger">{{ log.event_type }}</span>
+                        {% elif 'VERIFIED' in log.event_type or 'REGISTERED' in log.event_type %}
+                        <span class="badge badge-success">{{ log.event_type }}</span>
+                        {% elif 'TRANSFER' in log.event_type or 'ACCEPT' in log.event_type %}
+                        <span class="badge badge-warning">{{ log.event_type }}</span>
+                        {% else %}
+                        <span class="badge badge-info">{{ log.event_type }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight: 500;">{{ log.user.name if log.user else 'SYSTEM' }}</td>
+                    <td>
+                        {% if log.evidence %}
+                        <a href="{{ url_for('evidence.view_evidence', evidence_id=log.evidence.evidence_id) }}" style="font-family: var(--font-mono); font-size: 0.85rem; font-weight: 500;">
+                            {{ log.evidence.evidence_id }}
+                        </a>
+                        {% else %}
+                        <span style="color: var(--text-muted);">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="hash-block" style="padding: 0.25rem 0.5rem; display: inline-block; font-size: 0.75rem;" title="{{ log.current_hash }}">
+                            ...{{ log.current_hash[-12:] }}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <div class="empty-state-icon" aria-hidden="true">&#128203;</div>
+                            <p class="empty-state-text">No audit records found in the ledger.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <script>
 document.getElementById('verifyChainBtn').addEventListener('click', function() {
     const btn = this;
-    const resultDiv = document.getElementById('verificationResult');
-    
+    const banner = document.getElementById('chainStatusBanner');
+
+    // UI Loading state
     btn.disabled = true;
-    btn.innerText = 'Verifying Chain...';
-    
+    btn.innerHTML = '<span style="display:inline-block; animation:spin 1s linear infinite;">&#8982;</span> Verifying Chain...';
+    banner.style.display = 'none';
+
     fetch('{{ url_for("audit.verify_chain") }}', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
-        }
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').content : ''
+        },
+        body: JSON.stringify({})
     })
     .then(response => response.json())
     .then(data => {
-        resultDiv.style.display = 'block';
+        banner.style.display = 'flex';
+        banner.style.alignItems = 'flex-start';
+        banner.style.gap = '1.25rem';
+        
         if (data.success) {
-            resultDiv.className = 'alert alert-success';
-            resultDiv.innerHTML = '<strong>VERIFIED:</strong> ' + data.message;
+            banner.style.borderLeftColor = 'var(--success)';
+            banner.style.background = 'var(--success-muted)';
+            banner.innerHTML = `
+                <div style="font-size: 2rem; color: var(--success); line-height: 1;">&#10003;</div>
+                <div>
+                    <div style="font-family: var(--font-ui); font-weight: 700; color: var(--success); font-size: 1.1rem; margin-bottom: 0.25rem;">AUDIT CHAIN VERIFIED</div>
+                    <div style="font-size: 0.9rem; color: var(--text-primary);">${data.message}</div>
+                </div>`;
         } else {
-            resultDiv.className = 'alert alert-danger';
-            resultDiv.innerHTML = '<strong>TAMPER DETECTED:</strong> ' + data.message;
+            banner.style.borderLeftColor = 'var(--danger)';
+            banner.style.background = 'var(--danger-muted)';
+            banner.innerHTML = `
+                <div style="font-size: 2rem; color: var(--danger); line-height: 1;">&#9888;</div>
+                <div>
+                    <div style="font-family: var(--font-ui); font-weight: 700; color: var(--danger); font-size: 1.1rem; margin-bottom: 0.25rem;">INTEGRITY COMPROMISE DETECTED</div>
+                    <div style="font-size: 0.9rem; color: var(--text-primary);">${data.message}</div>
+                </div>`;
         }
     })
     .catch(error => {
-        resultDiv.style.display = 'block';
-        resultDiv.className = 'alert alert-danger';
-        resultDiv.innerHTML = 'Error verifying chain.';
+        banner.style.display = 'flex';
+        banner.style.borderLeftColor = 'var(--warning)';
+        banner.style.background = 'var(--warning-muted)';
+        banner.innerHTML = '<strong style="color: var(--warning);">Network error contacting verification endpoint.</strong>';
     })
     .finally(() => {
         btn.disabled = false;
-        btn.innerText = 'Verify Audit Chain Integrity';
+        btn.innerHTML = '&#128274; Verify Audit Chain Integrity';
     });
 });
 </script>
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
 {% endblock %}

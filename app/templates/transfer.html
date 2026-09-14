@@ -1,39 +1,142 @@
 {% extends "base.html" %}
-{% block content %}
-<h2>Initiate Handover: {{ evidence.evidence_id }}</h2>
-<div class="card" style="max-width: 600px;">
-    <p>Transferring custody of <strong>{{ evidence.name }}</strong>.</p>
-    
-    <div class="alert alert-warning">
-        The recipient must log in and explicitly accept this transfer before the chain of custody is updated.
-    </div>
-    
-    <form method="POST">
-        <div class="form-group">
-            <label for="receiver_id">Recipient (Authorized Personnel)</label>
-            <select id="receiver_id" name="receiver_id" class="form-control" required>
-                <option value="">-- Select Recipient --</option>
-                {% for user in users %}
-                <option value="{{ user.id }}">{{ user.name }} ({{ user.role.name }})</option>
-                {% endfor %}
-            </select>
-        </div>
-        
-        <div class="form-group">
-            <label for="purpose">Reason for Transfer</label>
-            <input type="text" id="purpose" name="purpose" class="form-control" required placeholder="e.g., Forensic Analysis, Court Presentation">
-        </div>
-        
-        <div class="form-group">
-            <label for="location">Handover Location (Optional)</label>
-            <input type="text" id="location" name="location" class="form-control">
-        </div>
-        
-        <div style="margin-top: 1.5rem;">
-            <button type="submit" class="btn btn-primary">Initiate Transfer Request</button>
-            <a href="{{ url_for('evidence.view_evidence', evidence_id=evidence.evidence_id) }}" class="btn" style="background-color: var(--secondary-color); color: white; margin-left: 1rem;">Cancel</a>
-        </div>
-    </form>
-</div>
-{% endblock %}
+{% block header_title %}Initiate Handover{% endblock %}
 
+{% block content %}
+<div style="max-width: 760px; margin: 0 auto;">
+    
+    <!-- Visual Workflow Banner -->
+    <div class="card" style="margin-bottom: 1.5rem; padding: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <div style="text-align: center; flex: 1;">
+            <div style="font-family: var(--font-ui); font-size: 0.7rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.4rem;">Current Custodian</div>
+            <div style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary);">{{ evidence.current_custodian.name }}</div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">{{ evidence.current_custodian.role.name }}</div>
+        </div>
+        
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 1rem;">
+            <div style="color: var(--accent); font-size: 1.5rem; line-height: 1;" aria-hidden="true">&#8644;</div>
+            <div style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); margin-top: 0.25rem;">{{ evidence.evidence_id }}</div>
+        </div>
+        
+        <div style="text-align: center; flex: 1;">
+            <div style="font-family: var(--font-ui); font-size: 0.7rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.4rem;">Receiving Officer</div>
+            <div style="font-size: 1.1rem; font-weight: 600; color: var(--warning);">Pending Selection</div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">Requires Acceptance</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Evidence Custody Transfer Form</h3>
+        </div>
+
+        <div class="alert alert-warning">
+            <div style="font-size: 1.25rem; line-height: 1;" aria-hidden="true">&#9888;</div>
+            <div>
+                <strong>Two-Step Process:</strong> The selected recipient must log in and explicitly <strong>accept</strong> this transfer before the chain of custody is officially updated. A new hash will be recorded.
+            </div>
+        </div>
+
+        <!-- Evidence Summary -->
+        <div style="background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
+            <div style="font-family: var(--font-ui); font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1rem;">Evidence Summary</div>
+            <div class="grid-2">
+                <div><span style="color: var(--text-secondary);">Name:</span> <span style="color: var(--text-primary);">{{ evidence.name }}</span></div>
+                <div><span style="color: var(--text-secondary);">Type:</span> <span style="color: var(--text-primary);">{{ evidence.type }}</span></div>
+                <div><span style="color: var(--text-secondary);">Case:</span> <strong style="color: var(--text-primary);">{{ evidence.case.case_number }}</strong></div>
+                <div>
+                    <span style="color: var(--text-secondary);">Status:</span>
+                    {% if evidence.status == 'VERIFIED' %}
+                    <span class="badge badge-success">&#10003; VERIFIED</span>
+                    {% elif evidence.status == 'TAMPER_DETECTED' %}
+                    <span class="badge badge-danger">&#9888; TAMPER DETECTED</span>
+                    {% else %}
+                    <span class="badge badge-info">{{ evidence.status }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" id="transferForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+            <div class="form-group">
+                <label class="form-label" for="receiver_id">Authorized Recipient <span class="required">*</span></label>
+                <select id="receiver_id" name="receiver_id" class="form-control" required>
+                    <option value="" disabled selected>-- Select authorized personnel --</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}">{{ user.name }} &mdash; {{ user.role.name }}</option>
+                    {% endfor %}
+                </select>
+                <div class="form-hint">Only active authorized system users are shown.</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="purpose">Reason for Transfer <span class="required">*</span></label>
+                <input type="text" id="purpose" name="purpose" class="form-control" required placeholder="e.g., Forensic Analysis, Court Submission, Storage Relocation">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="location">Handover Location <span style="color: var(--text-muted); font-weight: normal;">(optional)</span></label>
+                <input type="text" id="location" name="location" class="form-control" placeholder="e.g., Central Forensic Lab, Court Room 3">
+            </div>
+
+            <div class="divider"></div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                <a href="{{ url_for('evidence.view_evidence', evidence_id=evidence.evidence_id) }}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary" id="transferBtn">&#8644; Initiate Transfer Request</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Overlay for Confirmation -->
+<div id="confirmModal" style="display:none; position:fixed; inset:0; background:rgba(2,6,23,0.85); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+    <div class="card" style="width: 100%; max-width: 480px; margin: 0 1rem; border-top: 4px solid var(--warning);">
+        <h3 style="margin-top: 0; color: var(--text-primary); font-family: var(--font-ui);">Confirm Handover Initiation</h3>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            You are initiating a transfer of custody for <strong style="font-family: var(--font-mono); color: var(--accent);">{{ evidence.evidence_id }}</strong> to <strong id="modalRecipient" style="color: var(--text-primary);"></strong>.
+        </p>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
+            They must log in and explicitly accept this transfer to complete the chain of custody update.
+        </p>
+        <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button type="button" class="btn btn-warning" onclick="submitForm()" style="background: var(--warning); color: #fff; border-color: var(--warning);">Confirm Handover</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById('transferForm');
+    const modal = document.getElementById('confirmModal');
+    const receiverSelect = document.getElementById('receiver_id');
+    const modalRecipient = document.getElementById('modalRecipient');
+    
+    form.addEventListener('submit', (e) => {
+        // Prevent immediate submission to show modal instead
+        if (!form.dataset.confirmed && form.checkValidity()) {
+            e.preventDefault();
+            const recipientName = receiverSelect.options[receiverSelect.selectedIndex].text.split(' — ')[0];
+            modalRecipient.textContent = recipientName;
+            modal.style.display = 'flex';
+        }
+    });
+    
+    function closeModal() {
+        modal.style.display = 'none';
+    }
+    
+    function submitForm() {
+        form.dataset.confirmed = 'true';
+        closeModal();
+        const btn = document.getElementById('transferBtn');
+        btn.innerHTML = '<span style="display:inline-block; animation:spin 1s linear infinite;">&#8982;</span> Initiating...';
+        btn.disabled = true;
+        form.submit();
+    }
+</script>
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}

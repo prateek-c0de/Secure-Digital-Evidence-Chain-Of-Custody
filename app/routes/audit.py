@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, jsonify
 from app.models import AuditLog
 from app.services.audit_service import AuditService
 from app.middleware.auth import login_required, role_required
+from app import csrf
 
 audit_bp = Blueprint('audit', __name__)
 
@@ -15,6 +16,7 @@ def list_logs():
 @audit_bp.route('/verify-chain', methods=['POST'])
 @login_required
 @role_required(['Administrator', 'Auditor'])
+@csrf.exempt
 def verify_chain():
     is_valid, invalid_blocks = AuditService.verify_chain()
     

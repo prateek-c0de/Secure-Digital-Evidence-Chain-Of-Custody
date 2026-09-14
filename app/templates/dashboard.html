@@ -1,83 +1,124 @@
 {% extends "base.html" %}
+{% block page_title %}Dashboard{% endblock %}
+{% block header_title %}Dashboard{% endblock %}
+
 {% block content %}
-<h2>Dashboard</h2>
-<p>Welcome, <strong>{{ user.name }}</strong> ({{ user.role.name }})</p>
+{# Welcome Row #}
+<div style="margin-bottom:1.75rem;">
+    <h2 style="font-size:1.25rem;font-weight:500;margin:0 0 0.4rem;">Welcome back, {{ user.name }}</h2>
+    <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+        <span style="color:var(--text-secondary);font-size:0.875rem;">System Role:</span>
+        <span class="badge badge-info">{{ user.role.name }}</span>
+    </div>
+</div>
+
+{# Stat Cards #}
+<div class="grid-4" style="margin-bottom:1.75rem;">
+    <div class="stat-card" style="border-top-color:var(--accent);">
+        <div class="stat-value" style="color:var(--accent);">{{ stats.total_evidence }}</div>
+        <div class="stat-label">Total Evidence</div>
+    </div>
+    <div class="stat-card" style="border-top-color:var(--success);">
+        <div class="stat-value" style="color:var(--success);">{{ stats.my_evidence }}</div>
+        <div class="stat-label">In My Custody</div>
+    </div>
+    <div class="stat-card" style="border-top-color:var(--warning);">
+        <div class="stat-value" style="color:var(--warning);">{{ stats.pending_transfers }}</div>
+        <div class="stat-label">Pending Transfers</div>
+    </div>
+    <div class="stat-card" style="border-top-color:var(--danger);">
+        <div class="stat-value" style="color:var(--danger);">0</div>
+        <div class="stat-label">Tamper Alerts</div>
+    </div>
+</div>
 
 <div class="grid-2">
-    <div class="card">
-        <h3>System Overview</h3>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
-            <div>
-                <div style="font-size: 2rem; font-weight: bold; color: var(--accent-color);">{{ stats.total_evidence }}</div>
-                <div style="color: var(--text-muted);">Total Evidence</div>
-            </div>
-            <div>
-                <div style="font-size: 2rem; font-weight: bold; color: var(--success);">{{ stats.my_evidence }}</div>
-                <div style="color: var(--text-muted);">In My Custody</div>
-            </div>
-            <div>
-                <div style="font-size: 2rem; font-weight: bold; color: var(--warning);">{{ stats.pending_transfers }}</div>
-                <div style="color: var(--text-muted);">Pending Transfers</div>
-            </div>
+    {# Action Required #}
+    <div class="card" style="margin-bottom:0;">
+        <div class="card-header">
+            <h3 class="card-title">Action Required</h3>
+            {% if my_pending_transfers %}
+            <span class="badge badge-warning">{{ my_pending_transfers|length }} pending</span>
+            {% endif %}
         </div>
-    </div>
-    
-    <div class="card">
-        <h3>Action Required</h3>
+
         {% if my_pending_transfers %}
-            <ul style="list-style: none; padding: 0;">
+        <div style="display:flex;flex-direction:column;gap:1rem;">
             {% for transfer in my_pending_transfers %}
-                <li style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
-                    <strong>{{ transfer.evidence.evidence_id }}</strong> - {{ transfer.evidence.name }}<br>
-                    <small style="color: var(--text-muted);">From: {{ transfer.sender.name }} | Reason: {{ transfer.purpose }}</small><br>
-                    <form method="POST" action="{{ url_for('custody.accept', event_id=transfer.id) }}" style="margin-top: 0.5rem;">
-                        <button type="submit" class="btn btn-success">Accept Transfer</button>
-                    </form>
-                </li>
+            <div style="border:1px solid var(--border);border-radius:var(--radius-md);padding:1.25rem;background:var(--bg-elevated);">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.75rem;gap:1rem;flex-wrap:wrap;">
+                    <div>
+                        <div class="evidence-id" style="font-size:1rem;font-weight:600;">{{ transfer.evidence.evidence_id }}</div>
+                        <div style="font-size:0.9rem;font-weight:500;margin-top:0.2rem;">{{ transfer.evidence.name }}</div>
+                    </div>
+                    <span class="badge badge-warning">&#9201; AWAITING ACCEPTANCE</span>
+                </div>
+                <div style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:1rem;display:grid;grid-template-columns:auto 1fr;gap:0.25rem 0.75rem;">
+                    <span style="color:var(--text-muted);">From:</span><span>{{ transfer.sender.name }}</span>
+                    <span style="color:var(--text-muted);">Purpose:</span><span>{{ transfer.purpose }}</span>
+                    <span style="color:var(--text-muted);">Time:</span><span>{{ transfer.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                </div>
+                <form method="POST" action="{{ url_for('custody.accept', event_id=transfer.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn btn-success btn-block">&#10003; Securely Accept Custody</button>
+                </form>
+            </div>
             {% endfor %}
-            </ul>
+        </div>
         {% else %}
-            <p style="color: var(--text-muted);">No pending transfers requiring your attention.</p>
+        <div class="empty-state">
+            <div class="empty-state-icon" aria-hidden="true">&#10003;</div>
+            <p class="empty-state-text">No pending transfers requiring your action.</p>
+        </div>
         {% endif %}
     </div>
-</div>
 
-<div class="card">
-    <h3>Recent Evidence</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Date</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in recent_evidence %}
-            <tr>
-                <td>{{ item.evidence_id }}</td>
-                <td>{{ item.name }}</td>
-                <td>
-                    {% if item.status == 'VERIFIED' %}
-                    <span class="badge badge-success">VERIFIED</span>
-                    {% elif item.status == 'TAMPER_DETECTED' %}
-                    <span class="badge badge-danger">TAMPER DETECTED</span>
+    {# Recent Evidence #}
+    <div class="card" style="margin-bottom:0;">
+        <div class="card-header">
+            <h3 class="card-title">Recent Evidence</h3>
+            <a href="{{ url_for('evidence.list_evidence') }}" class="btn btn-secondary btn-sm">View All</a>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Evidence ID</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in recent_evidence %}
+                    <tr>
+                        <td><span class="evidence-id">{{ item.evidence_id }}</span></td>
+                        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ item.name }}">{{ item.name }}</td>
+                        <td>
+                            {% if item.status == 'VERIFIED' %}
+                            <span class="badge badge-success">&#10003; VERIFIED</span>
+                            {% elif item.status == 'TAMPER_DETECTED' %}
+                            <span class="badge badge-danger">&#9888; TAMPER</span>
+                            {% else %}
+                            <span class="badge badge-info">&#9432; {{ item.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('evidence.view_evidence', evidence_id=item.evidence_id) }}" class="btn btn-secondary btn-sm">View</a>
+                        </td>
+                    </tr>
                     {% else %}
-                    <span class="badge badge-warning">{{ item.status }}</span>
-                    {% endif %}
-                </td>
-                <td>{{ item.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                <td>
-                    <a href="{{ url_for('evidence.view_evidence', evidence_id=item.evidence_id) }}" class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">View</a>
-                </td>
-            </tr>
-            {% else %}
-            <tr><td colspan="5">No evidence registered yet.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                    <tr>
+                        <td colspan="4">
+                            <div class="empty-state" style="padding:1.5rem 0;">
+                                <p class="empty-state-text">No evidence registered yet.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 {% endblock %}
-

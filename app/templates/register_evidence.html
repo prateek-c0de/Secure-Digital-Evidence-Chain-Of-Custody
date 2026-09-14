@@ -1,59 +1,197 @@
 {% extends "base.html" %}
+{% block header_title %}Register Digital Evidence{% endblock %}
+
 {% block content %}
-<h2>Register Digital Evidence</h2>
-<div class="card" style="max-width: 800px;">
-    <form method="POST" enctype="multipart/form-data">
+<!-- Registration Workflow visual -->
+<div class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.5rem;">
+    <div class="workflow-steps">
+        <div class="workflow-step" style="color: var(--accent); border-color: var(--accent); background: var(--accent-muted);">01 Case Info</div>
+        <div class="workflow-arrow">&#8594;</div>
+        <div class="workflow-step">02 Metadata</div>
+        <div class="workflow-arrow">&#8594;</div>
+        <div class="workflow-step">03 Secure Upload</div>
+        <div class="workflow-arrow">&#8594;</div>
+        <div class="workflow-step">04 SHA-256 Hash</div>
+    </div>
+</div>
+
+<div class="card" style="max-width: 900px; margin: 0 auto;">
+    <form method="POST" enctype="multipart/form-data" id="registrationForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        
+        <h4 class="form-section-title">1. Case Information</h4>
         <div class="grid-2">
             <div class="form-group">
-                <label for="case_number">Case Number</label>
-                <input type="text" id="case_number" name="case_number" class="form-control" required>
+                <label class="form-label" for="case_number">Case Reference Number <span class="required">*</span></label>
+                <input type="text" id="case_number" name="case_number" class="form-control" placeholder="e.g., CASE-2026-001" required>
             </div>
             <div class="form-group">
-                <label for="name">Evidence Name</label>
-                <input type="text" id="name" name="name" class="form-control" required>
+                <label class="form-label" for="name">Evidence Name <span class="required">*</span></label>
+                <input type="text" id="name" name="name" class="form-control" placeholder="Short descriptive identifier" required>
             </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="type">Evidence Type <span class="required">*</span></label>
+            <select id="type" name="type" class="form-control" required>
+                <option value="" disabled selected>-- Select evidence type --</option>
+                <option value="IMAGE">Image (JPG, PNG, GIF)</option>
+                <option value="VIDEO">Video (MP4)</option>
+                <option value="AUDIO">Audio (MP3, WAV)</option>
+                <option value="DOCUMENT">Document (PDF, DOC, DOCX, TXT, CSV)</option>
+                <option value="DISK_IMAGE">Disk Image (DD, IMG, RAW)</option>
+                <option value="OTHER">Other</option>
+            </select>
         </div>
         
+        <h4 class="form-section-title">2. Collection Details</h4>
         <div class="grid-2">
             <div class="form-group">
-                <label for="type">Evidence Type</label>
-                <select id="type" name="type" class="form-control" required>
-                    <option value="IMAGE">Image</option>
-                    <option value="VIDEO">Video</option>
-                    <option value="AUDIO">Audio</option>
-                    <option value="DOCUMENT">Document</option>
-                    <option value="DISK_IMAGE">Disk Image</option>
-                    <option value="OTHER">Other Digital File</option>
-                </select>
+                <label class="form-label" for="collection_location">Physical/Digital Origin <span class="required">*</span></label>
+                <input type="text" id="collection_location" name="collection_location" class="form-control" placeholder="e.g., Cyber Crime Lab, Server B" required>
             </div>
             <div class="form-group">
-                <label for="file">Digital Evidence File</label>
-                <input type="file" id="file" name="file" class="form-control" required>
-                <small style="color: var(--text-muted);">The system will automatically generate a SHA-256 integrity hash.</small>
+                <label class="form-label" for="collector">Initial Collector <span class="required">*</span></label>
+                <input type="text" id="collector" name="collector" class="form-control" value="{{ session.get('name') }}" readonly style="opacity: 0.7; cursor: not-allowed;">
+                <div class="form-hint">Automatically logged to your authorized profile.</div>
             </div>
         </div>
+
+        <div class="form-group">
+            <label class="form-label" for="description">Detailed Description <span style="color:var(--text-muted);font-weight:normal;">(optional)</span></label>
+            <textarea id="description" name="description" class="form-control" placeholder="Include device serial numbers, hash algorithms, or contextual forensics information..."></textarea>
+        </div>
+
+        <h4 class="form-section-title">3. Digital Artifact Upload</h4>
         
         <div class="form-group">
-            <label for="description">Description & Notes</label>
-            <textarea id="description" name="description" class="form-control" rows="4"></textarea>
-        </div>
-        
-        <div class="grid-2">
-            <div class="form-group">
-                <label for="collection_location">Collection Location</label>
-                <input type="text" id="collection_location" name="collection_location" class="form-control">
+            <div id="dropzone" style="border: 2px dashed var(--border); border-radius: var(--radius-lg); padding: 3rem 2rem; text-align: center; background: var(--bg-base); transition: all var(--transition); cursor: pointer; margin-bottom: 1rem;">
+                <div style="font-size: 2.5rem; color: var(--accent); margin-bottom: 1rem;" aria-hidden="true">&#128193;</div>
+                <h4 style="font-family: var(--font-ui); color: var(--text-primary); margin-bottom: 0.25rem;">Select Digital Artifact</h4>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">The file will be securely uploaded and cryptographically hashed (SHA-256)</p>
+                <input type="file" id="file" name="file" style="display: none;" required>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('file').click()">Browse Files</button>
             </div>
-            <div class="form-group">
-                <label for="collection_device">Source Device / IP</label>
-                <input type="text" id="collection_device" name="collection_device" class="form-control">
+            <div id="file-info" style="display: none; background: var(--bg-elevated); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="font-size: 1.5rem; color: var(--accent);">&#128196;</div>
+                    <div>
+                        <div id="filename-display" style="font-family: var(--font-mono); font-weight: 500; font-size: 0.9rem;">filename.ext</div>
+                        <div id="filesize-display" style="font-size: 0.75rem; color: var(--text-muted);">0 MB</div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-danger" id="clear-file" style="display:none;">Clear</button>
             </div>
         </div>
+
+        <div class="divider"></div>
         
-        <div style="margin-top: 1.5rem;">
-            <button type="submit" class="btn btn-success">Secure & Register Evidence</button>
-            <a href="{{ url_for('dashboard.index') }}" class="btn" style="background-color: var(--secondary-color); color: white; margin-left: 1rem;">Cancel</a>
+        <div style="display: flex; justify-content: flex-end; gap: 1rem; align-items: center;">
+            <span style="font-size: 0.8rem; color: var(--text-muted);">A tamper-evident audit record will be generated.</span>
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+                <span id="btnText">&#128274; Secure & Register Evidence</span>
+            </button>
         </div>
     </form>
 </div>
-{% endblock %}
 
+<!-- Upload Overlay -->
+<div id="uploadOverlay" style="display:none; position:fixed; inset:0; background:rgba(2,6,23,0.85); z-index:9999; flex-direction:column; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+    <div style="width: 60px; height: 60px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 1.5rem;"></div>
+    <h3 style="color:var(--text-primary); font-family:var(--font-ui); margin-bottom:0.5rem;" id="overlayTitle">Uploading Artifact...</h3>
+    <p style="color:var(--text-muted); font-family:var(--font-mono); font-size:0.85rem;" id="overlayText">Establishing secure channel</p>
+</div>
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<script>
+    const fileInput = document.getElementById('file');
+    const dropzone = document.getElementById('dropzone');
+    const fileInfo = document.getElementById('file-info');
+    const filenameDisplay = document.getElementById('filename-display');
+    const filesizeDisplay = document.getElementById('filesize-display');
+    const clearBtn = document.getElementById('clear-file');
+    const form = document.getElementById('registrationForm');
+    const overlay = document.getElementById('uploadOverlay');
+    const overlayTitle = document.getElementById('overlayTitle');
+    const overlayText = document.getElementById('overlayText');
+
+    // Make initial display state correct
+    fileInfo.style.display = 'none';
+
+    dropzone.addEventListener('click', (e) => {
+        if(e.target.tagName !== 'BUTTON') {
+            fileInput.click();
+        }
+    });
+
+    dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.style.borderColor = 'var(--accent)';
+        dropzone.style.background = 'rgba(59,130,246,0.05)';
+    });
+
+    dropzone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropzone.style.borderColor = 'var(--border)';
+        dropzone.style.background = 'var(--bg-base)';
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.style.borderColor = 'var(--border)';
+        dropzone.style.background = 'var(--bg-base)';
+        
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            updateFileDisplay();
+        }
+    });
+
+    fileInput.addEventListener('change', updateFileDisplay);
+    clearBtn.addEventListener('click', () => {
+        fileInput.value = '';
+        updateFileDisplay();
+    });
+
+    function updateFileDisplay() {
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            dropzone.style.display = 'none';
+            fileInfo.style.display = 'flex';
+            clearBtn.style.display = 'block';
+            filenameDisplay.textContent = file.name;
+            filesizeDisplay.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+            
+            // Auto-fill evidence name if empty
+            const nameInput = document.getElementById('name');
+            if(!nameInput.value) {
+                nameInput.value = file.name;
+            }
+        } else {
+            dropzone.style.display = 'block';
+            fileInfo.style.display = 'none';
+            clearBtn.style.display = 'none';
+        }
+    }
+
+    form.addEventListener('submit', (e) => {
+        if(!form.checkValidity()) return;
+        
+        // Show animated overlay
+        overlay.style.display = 'flex';
+        document.getElementById('submitBtn').disabled = true;
+        
+        // Sequence text changes for visual effect before form actually submits
+        setTimeout(() => {
+            overlayTitle.textContent = "Calculating Cryptographic Hash";
+            overlayText.textContent = "SHA-256 execution in progress...";
+        }, 1200);
+        
+        setTimeout(() => {
+            overlayTitle.textContent = "Registering Ledger Entry";
+            overlayText.textContent = "Awaiting database lock...";
+        }, 2400);
+    });
+</script>
+{% endblock %}

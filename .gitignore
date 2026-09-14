@@ -1,0 +1,29 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+env/
+.env
+
+# Application Data & Storage
+instance/
+uploads/
+app/static/qr/
+tests/app/static/qr/
+tests/test_uploads/
+
+# Output and temporary files
+flask_out.txt
+flask_err.txt
+cleanup_dummy.py
+*.log
+
+# Pytest
+.pytest_cache/
+
+# OS specific
+.DS_Store
+Thumbs.db

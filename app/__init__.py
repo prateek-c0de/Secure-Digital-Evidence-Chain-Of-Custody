@@ -1,8 +1,10 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import CSRFProtect
 import os
 
 db = SQLAlchemy()
+csrf = CSRFProtect()
 
 def create_app(config_class='app.config.Config'):
     app = Flask(__name__)
@@ -10,6 +12,7 @@ def create_app(config_class='app.config.Config'):
 
     # Initialize extensions
     db.init_app(app)
+    csrf.init_app(app)
 
     # Ensure upload directory exists
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

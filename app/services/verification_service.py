@@ -30,9 +30,11 @@ class VerificationService:
         
         db.session.add(event)
         
-        # We don't change the evidence status unless it's tampered, to persist the tamper state
+        # Update evidence status based on verification result
         if result_status == 'TAMPER_DETECTED':
             evidence.status = 'TAMPER_DETECTED'
+        elif result_status == 'VERIFIED' and evidence.status != 'TAMPER_DETECTED':
+            evidence.status = 'VERIFIED'
             
         db.session.commit()
         

@@ -43,6 +43,11 @@ def register():
             flash('No file selected', 'danger')
             return redirect(request.url)
             
+        ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'mp3', 'wav', 'pdf', 'txt', 'doc', 'docx', 'csv', 'img', 'dd', 'raw'}
+        if '.' not in file.filename or file.filename.rsplit('.', 1)[1].lower() not in ALLOWED_EXTENSIONS:
+            flash('File type not permitted for evidence.', 'danger')
+            return redirect(request.url)
+            
         case = Case.query.filter_by(case_number=case_number).first()
         if not case:
             case = Case(case_number=case_number, title=f"Case {case_number}")

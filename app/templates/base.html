@@ -3,40 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Evidence Platform | SIH 2026</title>
+    <title>{% block page_title %}Secure Evidence Platform{% endblock %} | SIH 2026</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% if session.get('user_id') %}<meta name="csrf-token" content="{{ csrf_token() }}">{% endif %}
 </head>
 <body>
-    <nav class="navbar">
-        <a href="{{ url_for('dashboard.index') }}" class="navbar-brand">??? Secure Evidence</a>
-        {% if session.get('user_id') %}
-        <div class="navbar-nav">
-            <a href="{{ url_for('dashboard.index') }}" class="nav-link">Dashboard</a>
-            <a href="{{ url_for('evidence.list_evidence') }}" class="nav-link">Evidence</a>
-            {% if session.get('role') in ['Administrator', 'Evidence Collector'] %}
-            <a href="{{ url_for('evidence.register') }}" class="nav-link">Register Evidence</a>
-            {% endif %}
-            {% if session.get('role') in ['Administrator', 'Auditor'] %}
-            <a href="{{ url_for('audit.list_logs') }}" class="nav-link">Audit Log</a>
-            {% endif %}
-            <a href="{{ url_for('auth.logout') }}" class="nav-link">Logout</a>
-        </div>
-        {% endif %}
-    </nav>
+{% if session.get('user_id') %}
 
-    <div class="container">
+<div class="app-layout">
+    <!-- ── Sidebar ─────────────────────────────── -->
+    <aside class="sidebar" id="sidebar" aria-label="Main Navigation">
+        <div class="sidebar-header">
+            <div class="brand">
+                <span class="brand-icon" aria-hidden="true">&#128110;</span>
+                <div>
+                    <div class="brand-name">SECURE EVIDENCE</div>
+                    <span class="brand-sub">Chain-of-Custody</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Primary">
+            <div class="nav-group-label">MAIN</div>
+            <a href="{{ url_for('dashboard.index') }}"
+               class="nav-item {% if request.endpoint == 'dashboard.index' %}active{% endif %}"
+               aria-current="{% if request.endpoint == 'dashboard.index' %}page{% endif %}">
+                <span class="nav-icon" aria-hidden="true">&#9632;</span> Dashboard
+            </a>
+            <a href="{{ url_for('evidence.list_evidence') }}"
+               class="nav-item {% if request.endpoint in ['evidence.list_evidence','evidence.view_evidence'] %}active{% endif %}">
+                <span class="nav-icon" aria-hidden="true">&#128193;</span> Evidence Registry
+            </a>
+
+            {% if session.get('role') in ['Administrator', 'Evidence Collector'] %}
+            <div class="nav-group-label">ACTIONS</div>
+            <a href="{{ url_for('evidence.register') }}"
+               class="nav-item {% if request.endpoint == 'evidence.register' %}active{% endif %}">
+                <span class="nav-icon" aria-hidden="true">&#43;</span> Register Evidence
+            </a>
+            {% endif %}
+
+            <div class="nav-group-label">COMPLIANCE</div>
+            {% if session.get('role') in ['Administrator', 'Auditor'] %}
+            <a href="{{ url_for('audit.list_logs') }}"
+               class="nav-item {% if request.endpoint == 'audit.list_logs' %}active{% endif %}">
+                <span class="nav-icon" aria-hidden="true">&#128279;</span> Audit Trail
+            </a>
+            {% endif %}
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-role-badge">{{ session.get('role', 'User') }}</div>
+            <a href="{{ url_for('auth.logout') }}" class="logout-link">
+                <span aria-hidden="true">&#128682;</span> Secure Logout
+            </a>
+        </div>
+    </aside>
+
+    <!-- ── Main ───────────────────────────────── -->
+    <div class="main-wrapper">
+        <header class="top-header" role="banner">
+            <div class="header-left">
+                <button class="mobile-toggle" id="mobile-toggle" aria-label="Toggle sidebar" aria-expanded="false" aria-controls="sidebar">&#9776;</button>
+                <h1 class="page-title">{% block header_title %}Overview{% endblock %}</h1>
+            </div>
+            <div class="header-right">
+                <div class="system-status" aria-label="System status: secure">
+                    <span class="status-dot" aria-hidden="true"></span>
+                    <span class="status-text">SECURE NETWORK</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="content-area" id="main-content">
+            <div class="container">
+                {# Flash messages #}
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="toast-container" id="toast-container" role="alert" aria-live="polite">
+                        {% for category, message in messages %}
+                            <div class="toast toast-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Sidebar overlay for mobile -->
+<div id="sidebar-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:150;" aria-hidden="true"></div>
+
+{% else %}
+
+<!-- ── Public Layout ─────────────────────────── -->
+<div class="public-layout">
+    <div style="width:100%;max-width:460px;">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
-        
-        {% block content %}{% endblock %}
+        {% block login_content %}{% endblock %}
     </div>
+</div>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
-

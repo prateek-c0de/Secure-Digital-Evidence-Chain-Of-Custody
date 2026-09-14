@@ -8,6 +8,16 @@ class Config:
     
     # Database Config
     db_url = os.environ.get('DATABASE_URL')
+    
+    # Construct DB URL from individual MYSQL_ vars if DATABASE_URL is not set to mysql
+    if not db_url or db_url.startswith('sqlite'):
+        mysql_user = os.environ.get('MYSQL_USER')
+        mysql_pass = os.environ.get('MYSQL_PASSWORD', '')
+        mysql_host = os.environ.get('MYSQL_HOST', 'localhost')
+        mysql_db = os.environ.get('MYSQL_DATABASE')
+        if mysql_user and mysql_db:
+            db_url = f"mysql+pymysql://{mysql_user}:{mysql_pass}@{mysql_host}/{mysql_db}"
+            
     if db_url and db_url.startswith('mysql'):
         # Ensure pymysql is used if mysql is specified
         if db_url.startswith('mysql://'):

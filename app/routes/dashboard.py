@@ -34,3 +34,19 @@ def index():
         my_pending_transfers=my_pending_transfers
     )
 
+@dashboard_bp.route('/qr/evidence/<path:qr_data>')
+@login_required
+def qr_lookup(qr_data):
+    # Strip any prefix like "EVIDENCE_ID:" if present
+    evidence_id = qr_data.replace('EVIDENCE_ID:', '').strip()
+    
+    # Check if the evidence exists
+    evidence = Evidence.query.filter_by(evidence_id=evidence_id).first()
+    if not evidence:
+        from flask import flash, redirect, url_for
+        flash(f'Evidence {evidence_id} not found from QR scan.', 'danger')
+        return redirect(url_for('dashboard.index'))
+        
+    from flask import redirect, url_for
+    return redirect(url_for('evidence.view_evidence', evidence_id=evidence.evidence_id))
+

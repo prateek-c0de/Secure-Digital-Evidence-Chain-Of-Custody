@@ -5,8 +5,13 @@ from flask import current_app
 class QRService:
     @staticmethod
     def generate_qr(evidence_id):
-        # We encode the evidence ID as required (no sensitive data)
-        data = f"EVIDENCE_ID:{evidence_id}"
+        # We encode the full lookup URL for the evidence ID as required
+        from flask import request, url_for
+        try:
+            data = url_for('dashboard.qr_lookup', qr_data=f"EVIDENCE_ID:{evidence_id}", _external=True)
+        except RuntimeError:
+            # Fallback for testing outside request context
+            data = f"/qr/evidence/EVIDENCE_ID:{evidence_id}"
         
         qr = qrcode.QRCode(
             version=1,

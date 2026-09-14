@@ -1,76 +1,296 @@
 {% extends "base.html" %}
+{% block header_title %}Evidence Dossier{% endblock %}
+
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <h2>Evidence Details: {{ evidence.evidence_id }}</h2>
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
     <div>
+        <h2 style="margin: 0 0 0.25rem; font-family: var(--font-mono); font-size: 1.75rem; color: var(--accent);">{{ evidence.evidence_id }}</h2>
+        <div style="color: var(--text-muted); font-size: 0.85rem; font-family: var(--font-ui); letter-spacing: 0.5px;">
+            Case: <strong>{{ evidence.case.case_number }}</strong> &nbsp;|&nbsp; Registered: {{ evidence.created_at.strftime('%Y-%m-%d %H:%M') }}
+        </div>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
         {% if evidence.current_custodian_id == session['user_id'] and evidence.status != 'TRANSFER_PENDING' %}
-        <a href="{{ url_for('custody.transfer', evidence_id=evidence.evidence_id) }}" class="btn btn-primary">Initiate Handover</a>
+        <a href="{{ url_for('custody.transfer', evidence_id=evidence.evidence_id) }}" class="btn btn-secondary">&#8644; Initiate Handover</a>
         {% endif %}
         
-        <form method="POST" action="{{ url_for('verification.verify', evidence_id=evidence.evidence_id) }}" style="display: inline-block;">
-            <button type="submit" class="btn btn-success">Verify Integrity (SHA-256)</button>
+        <form method="POST" action="{{ url_for('verification.verify', evidence_id=evidence.evidence_id) }}" style="display: inline-block;" id="verifyForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn btn-success" id="verifyBtn">
+                <span id="verifyText">&#128269; Verify Integrity (SHA-256)</span>
+            </button>
         </form>
     </div>
 </div>
 
-<div class="grid-2">
-    <div class="card">
-        <h3>Metadata</h3>
-        <table style="background: var(--bg-main); border-radius: 0.25rem;">
-            <tr><th style="width: 35%;">Case ID</th><td>{{ evidence.case.case_number }}</td></tr>
-            <tr><th>Name</th><td>{{ evidence.name }}</td></tr>
-            <tr><th>Type</th><td>{{ evidence.type }}</td></tr>
-            <tr><th>Original Filename</th><td>{{ evidence.original_filename }}</td></tr>
-            <tr><th>File Size</th><td>{{ evidence.file_size }} bytes</td></tr>
-            <tr><th>Current Custodian</th><td><strong>{{ evidence.current_custodian.name }}</strong></td></tr>
-            <tr><th>Status</th>
-                <td>
-                    {% if evidence.status == 'TAMPER_DETECTED' %}
-                    <span class="badge badge-danger">{{ evidence.status }}</span>
-                    {% elif evidence.status == 'VERIFIED' %}
-                    <span class="badge badge-success">{{ evidence.status }}</span>
-                    {% else %}
-                    <span class="badge badge-warning">{{ evidence.status }}</span>
-                    {% endif %}
-                </td>
-            </tr>
-            <tr><th>Collection Time</th><td>{{ evidence.collection_timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td></tr>
-        </table>
+<!-- Integrity Banner -->
+{% if evidence.status == 'VERIFIED' %}
+<div class="integrity-banner verified">
+    <div class="integrity-icon" aria-hidden="true">&#10003;</div>
+    <div>
+        <div class="integrity-title" style="color: var(--success);">INTEGRITY VERIFIED</div>
+        <p class="integrity-desc">The cryptographic fingerprint (SHA-256) matches the original registration hash. Evidence has not been tampered with.</p>
+    </div>
+</div>
+{% elif evidence.status == 'TAMPER_DETECTED' %}
+<div class="integrity-banner tampered">
+    <div class="integrity-icon" aria-hidden="true">&#9888;</div>
+    <div>
+        <div class="integrity-title" style="color: var(--danger);">HASH MISMATCH DETECTED</div>
+        <p class="integrity-desc">The calculated hash does not match the registered hash. Evidence integrity could not be verified.</p>
+    </div>
+</div>
+{% else %}
+<div class="integrity-banner pending">
+    <div class="integrity-icon" aria-hidden="true">&#9432;</div>
+    <div>
+        <div class="integrity-title" style="color: var(--info);">PENDING VERIFICATION</div>
+        <p class="integrity-desc">This evidence is registered in the system but has not undergone a recent cryptographic verification check.</p>
+    </div>
+</div>
+{% endif %}
+
+<div class="grid-3" style="margin-bottom: 1.5rem;">
+    <!-- Metadata Column -->
+    <div class="card col-span-2" style="margin-bottom: 0;">
+        <div class="card-header">
+            <h3 class="card-title">Evidence Overview</h3>
+            <span class="badge badge-neutral">{{ evidence.type }}</span>
+        </div>
         
-        <div style="margin-top: 1.5rem;">
-            <h4>Security Fingerprint</h4>
-            <div style="background-color: var(--secondary-color); padding: 1rem; border-radius: 0.25rem; word-break: break-all; font-family: monospace; border: 1px solid var(--border);">
-                <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.25rem;">ORIGINAL SHA-256 HASH</div>
-                {{ evidence.sha256_hash }}
-            </div>
+        <div class="table-wrapper">
+            <table class="meta-table">
+                <tbody>
+                    <tr>
+                        <th>Evidence Name</th>
+                        <td>{{ evidence.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Filename</th>
+                        <td style="font-family: var(--font-mono); color: var(--accent);">
+                            {% if evidence.original_filename %}
+                                {{ evidence.original_filename }}
+                            {% else %}
+                                <span style="color: var(--text-muted); font-style: italic;">Not recorded</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>File Size</th>
+                        <td>{% if evidence.file_size %}{{ (evidence.file_size / 1024 / 1024)|round(2) }} MB{% else %}&mdash;{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <th>MIME Type</th>
+                        <td style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-secondary);">{{ evidence.mime_type or '&mdash;' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Collected By</th>
+                        <td>
+                            <strong>{{ evidence.collector.name }}</strong>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;"> &mdash; {{ evidence.collector.role.name }}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Collection Location</th>
+                        <td>{{ evidence.collection_location or '&mdash;' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Collection Time</th>
+                        <td style="font-family: var(--font-mono); font-size: 0.85rem;">{{ evidence.collection_timestamp.strftime('%Y-%m-%d %H:%M:%S') if evidence.collection_timestamp else '&mdash;' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Current Custodian</th>
+                        <td><strong style="color: var(--accent);">{{ evidence.current_custodian.name }}</strong> &mdash; {{ evidence.current_custodian.role.name }}</td>
+                    </tr>
+                    {% if evidence.description %}
+                    <tr>
+                        <th>Description / Notes</th>
+                        <td style="color: var(--text-secondary); font-size: 0.85rem;">{{ evidence.description }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <h4 class="form-section-title" style="margin-top: 1.5rem;">Cryptographic Fingerprint (SHA-256)</h4>
+        <div class="hash-block">
+            <div class="hash-label">Original Registered Hash</div>
+            <div id="originalHash">{{ evidence.sha256_hash }}</div>
+            <button class="copy-btn" onclick="copyHash('originalHash', this)" aria-label="Copy Hash">Copy</button>
         </div>
     </div>
-    
-    <div class="card" style="text-align: center;">
-        <h3>Tracking QR Code</h3>
-        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Scan for quick access & verification</p>
-        <img src="{{ url_for('static', filename='qr/' + evidence.evidence_id + '.png') }}" alt="QR Code" style="border: 4px solid white; border-radius: 0.5rem; max-width: 200px;">
-        <div style="margin-top: 1rem; font-weight: bold; letter-spacing: 1px;">{{ evidence.evidence_id }}</div>
+
+    <!-- QR Code Column -->
+    <div class="card" style="margin-bottom: 0; display: flex; flex-direction: column; align-items: center; text-align: center; justify-content: center;">
+        <div class="card-header" style="width: 100%; border-bottom: none; margin-bottom: 0.5rem; justify-content: center;">
+            <h3 class="card-title">Digital Identity Token</h3>
+        </div>
+        
+        <div style="background: white; padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.25rem; display: inline-block;">
+            <img src="{{ url_for('static', filename='qr/' + evidence.evidence_id + '.png') }}" alt="QR Code for {{ evidence.evidence_id }}" style="width: 180px; height: 180px; display: block;">
+        </div>
+        
+        <div style="font-family: var(--font-mono); font-size: 1.1rem; color: var(--accent); margin-bottom: 0.5rem; font-weight: 500;">
+            {{ evidence.evidence_id }}
+        </div>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 1rem; max-width: 200px;">
+            Scan to securely access this evidence profile from an authorized device.
+        </p>
+        <a href="{{ url_for('static', filename='qr/' + evidence.evidence_id + '.png') }}" download class="btn btn-secondary btn-sm btn-block">Download QR</a>
     </div>
 </div>
 
+<!-- Chain of Custody Timeline -->
 <div class="card">
-    <h3>Chain of Custody Timeline</h3>
+    <div class="card-header">
+        <h3 class="card-title">Chain of Custody</h3>
+        <span class="badge badge-neutral">{{ evidence.custody_events|length }} Events</span>
+    </div>
+
+    {% if evidence.custody_events %}
     <div class="timeline">
-        {% for event in custody_events %}
+        {% for event in evidence.custody_events %}
         <div class="timeline-item">
-            <div style="font-weight: bold; color: var(--accent-color);">{{ event.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} - {{ event.action }}</div>
-            <div style="margin-top: 0.5rem;">
-                {% if event.sender %}From: <strong>{{ event.sender.name }}</strong>{% endif %}
-                {% if event.receiver %} ? To: <strong>{{ event.receiver.name }}</strong>{% endif %}
+            <!-- Colored node based on action type -->
+            <div class="timeline-node
+                {%- if 'REGISTER' in event.action %} node-registered
+                {%- elif 'TRANSFER' in event.action and 'ACCEPT' not in event.action %} node-transfer
+                {%- elif 'ACCEPT' in event.action %} node-accepted
+                {%- elif 'VERIF' in event.action %} node-verified
+                {%- elif 'TAMPER' in event.action or 'FAIL' in event.action %} node-tampered
+                {%- else %} node-registered
+                {%- endif %}
+            "></div>
+
+            <div class="timeline-content">
+                <!-- Event Header: Action Badge + Timestamp -->
+                <div class="timeline-meta">
+                    <div>
+                        {%- if 'TAMPER' in event.action or 'FAIL' in event.action %}
+                        <span class="badge badge-danger">&#9888; {{ event.action }}</span>
+                        {%- elif 'VERIF' in event.action %}
+                        <span class="badge badge-success">&#10003; {{ event.action }}</span>
+                        {%- elif 'REGISTER' in event.action %}
+                        <span class="badge badge-info">&#43; {{ event.action }}</span>
+                        {%- elif 'ACCEPT' in event.action %}
+                        <span class="badge badge-success">&#10003; {{ event.action }}</span>
+                        {%- elif 'TRANSFER' in event.action %}
+                        <span class="badge badge-warning">&#8644; {{ event.action }}</span>
+                        {%- else %}
+                        <span class="badge badge-neutral">{{ event.action }}</span>
+                        {%- endif %}
+                    </div>
+                    <div class="timeline-time">{{ event.timestamp.strftime('%d %b %Y, %H:%M:%S') }}</div>
+                </div>
+
+                <!-- Custody Flow: From → To -->
+                <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap; margin:0.75rem 0; padding:0.75rem 1rem; background:var(--bg-base); border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
+                    <div style="text-align:center; flex:1;">
+                        <div style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.75px; margin-bottom:0.2rem;">From</div>
+                        <div style="font-weight:600; font-size:0.9rem;">{{ event.sender.name if event.sender else 'System' }}</div>
+                        {% if event.sender %}<div style="font-size:0.75rem; color:var(--text-secondary);">{{ event.sender.role.name }}</div>{% endif %}
+                    </div>
+                    <div style="color:var(--accent); font-size:1.25rem; flex-shrink:0;" aria-hidden="true">&#8594;</div>
+                    <div style="text-align:center; flex:1;">
+                        <div style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.75px; margin-bottom:0.2rem;">To</div>
+                        <div style="font-weight:600; font-size:0.9rem;">{{ event.receiver.name }}</div>
+                        <div style="font-size:0.75rem; color:var(--text-secondary);">{{ event.receiver.role.name }}</div>
+                    </div>
+                </div>
+
+                <!-- Info Chips: Date / Time / Location / Status -->
+                <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
+                    <div style="display:flex; align-items:center; gap:0.4rem; background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.3rem 0.65rem; font-size:0.78rem;">
+                        <span aria-hidden="true">&#128197;</span>
+                        <span style="color:var(--text-muted);">Date:</span>
+                        <span style="font-family:var(--font-mono);">{{ event.timestamp.strftime('%Y-%m-%d') }}</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:0.4rem; background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.3rem 0.65rem; font-size:0.78rem;">
+                        <span aria-hidden="true">&#128336;</span>
+                        <span style="color:var(--text-muted);">Time:</span>
+                        <span style="font-family:var(--font-mono);">{{ event.timestamp.strftime('%H:%M:%S') }}</span>
+                    </div>
+                    {% if event.location %}
+                    <div style="display:flex; align-items:center; gap:0.4rem; background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.3rem 0.65rem; font-size:0.78rem;">
+                        <span aria-hidden="true">&#128205;</span>
+                        <span style="color:var(--text-muted);">Location:</span>
+                        <span>{{ event.location }}</span>
+                    </div>
+                    {% endif %}
+                    <div style="display:flex; align-items:center; gap:0.4rem; background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.3rem 0.65rem; font-size:0.78rem;">
+                        <span aria-hidden="true">&#9679;</span>
+                        <span style="color:var(--text-muted);">Status:</span>
+                        <span style="font-weight:600; color:{% if event.status == 'COMPLETED' %}var(--success){% elif event.status == 'PENDING' %}var(--warning){% else %}var(--text-secondary){% endif %};">{{ event.status }}</span>
+                    </div>
+                </div>
+
+                <!-- Reason / Purpose -->
+                {% if event.purpose %}
+                <div style="font-size:0.85rem; background:var(--bg-base); padding:0.65rem 0.875rem; border-radius:var(--radius-sm); border:1px solid var(--border-subtle); margin-bottom:0.6rem;">
+                    <div style="font-family:var(--font-ui); font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.75px; color:var(--text-muted); margin-bottom:0.25rem;">Purpose / Reason</div>
+                    <div style="color:var(--text-primary);">{{ event.purpose }}</div>
+                </div>
+                {% endif %}
+
+                <!-- Hash Fingerprint (collapsible) -->
+                <div style="margin-top:0.5rem;">
+                    <button type="button"
+                        onclick="var h=this.nextElementSibling; h.style.display=h.style.display==='none'?'block':'none'; this.innerHTML=this.innerHTML.includes('Show')?'&#9650; Hide Hash':'&#9660; Show Event Hash';"
+                        style="background:none; border:none; color:var(--text-muted); font-family:var(--font-mono); font-size:0.72rem; cursor:pointer; padding:0; letter-spacing:0.5px;">
+                        &#9660; Show Event Hash
+                    </button>
+                    <div style="display:none; margin-top:0.4rem;">
+                        <div class="hash-block" style="padding:0.5rem 0.75rem; font-size:0.75rem; word-break:break-all;">
+                            <div class="hash-label">Chain Hash</div>
+                            {{ event.current_event_hash or 'Not recorded' }}
+                        </div>
+                    </div>
+                </div>
             </div>
-            {% if event.purpose %}
-            <div style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">Purpose: {{ event.purpose }}</div>
-            {% endif %}
-            <div style="font-size: 0.75rem; color: var(--border); margin-top: 0.25rem; font-family: monospace;">Event Hash: {{ event.current_event_hash[:16] }}...</div>
         </div>
         {% endfor %}
     </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon" aria-hidden="true">&#128203;</div>
+        <p class="empty-state-text">No custody events recorded yet.</p>
+    </div>
+    {% endif %}
 </div>
-{% endblock %}
 
+<!-- Verify Overlay -->
+<div id="verifyOverlay" style="display:none; position:fixed; inset:0; background:rgba(2,6,23,0.85); z-index:9999; flex-direction:column; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+    <div style="width: 60px; height: 60px; border: 4px solid var(--border); border-top-color: var(--success); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 1.5rem;"></div>
+    <h3 style="color:var(--text-primary); font-family:var(--font-ui); margin-bottom:0.5rem;" id="vOverlayTitle">Verifying Evidence Integrity...</h3>
+    <div style="font-family:var(--font-mono); font-size:0.8rem; color:var(--text-muted); text-align:center; max-width:400px; word-break:break-all;" id="vOverlayHash">Reading file signature</div>
+</div>
+
+<script>
+    function copyHash(elementId, btn) {
+        const text = document.getElementById(elementId).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            const originalText = btn.innerText;
+            btn.innerText = 'Copied ✓';
+            btn.style.color = 'var(--success)';
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.style.color = 'var(--text-muted)';
+            }, 2000);
+        });
+    }
+
+    // Verify Animation
+    const verifyForm = document.getElementById('verifyForm');
+    if(verifyForm) {
+        verifyForm.addEventListener('submit', (e) => {
+            document.getElementById('verifyOverlay').style.display = 'flex';
+            const btn = document.getElementById('verifyBtn');
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                document.getElementById('vOverlayHash').innerText = "Comparing {{ evidence.sha256_hash }}...";
+            }, 800);
+        });
+    }
+</script>
+{% endblock %}
