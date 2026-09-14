@@ -28,7 +28,7 @@ Our platform provides a centralized system to register, store, transfer, track, 
 - 🔒 Secure storage and access control
 
 ## 🔄 Workflow
-'''text
+
 Evidence Collection
         ↓
 Evidence Registration
@@ -47,8 +47,8 @@ Hash Verification
         ↓
 Verified / Tamper Detected
 
-🛠️ Tch Stack
-'''text
+##🛠️ Tch Stack
+
 Component	  Technology
 Frontend	  HTML, CSS, JavaScript
 Backend	Python,   Flask
@@ -59,22 +59,40 @@ Storage	          Local / Cloud Storage
 Security	  Authentication, RBAC, Encryption
 Audit	          Hash-linked Audit Log
 
-🏗️ Architecture
-'''text
-Frontend
-   ↓
-Flask Backend
-   ↓
-MySQL + Secure Storage
-   ↓
-SHA-256 Integrity Verification
-   ↓
-QR / Evidence Tracking
-   ↓
-Audit & Chain of Custody
+##🏗️ Architecture
 
-🔒 Evidence Verification
-'''text
+                    ┌──────────────────┐
+                    │     Frontend     │
+                    │ HTML / CSS / JS  │
+                    └────────┬─────────┘
+                             │
+                             ↓
+                    ┌──────────────────┐
+                    │   Flask Backend  │
+                    │   Python / API   │
+                    └────────┬─────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              ↓              ↓              ↓
+       ┌────────────┐ ┌────────────┐ ┌──────────────┐
+       │   MySQL    │ │   Secure   │ │ SHA-256 Hash │
+       │  Database  │ │   Storage  │ │ Verification │
+       └────────────┘ └────────────┘ └──────────────┘
+              │              │              │
+              └──────────────┼──────────────┘
+                             ↓
+                    ┌──────────────────┐
+                    │  QR / Evidence   │
+                    │     Tracking     │
+                    └────────┬─────────┘
+                             ↓
+                    ┌──────────────────┐
+                    │ Audit & Chain of │
+                    │     Custody      │
+                    └──────────────────┘
+
+##🔒 Evidence Verification
+
 When evidence is registered, a SHA-256 hash is generated.
 Original Hash == Current Hash
         ↓
@@ -84,7 +102,7 @@ Original Hash != Current Hash
         ↓
   ⚠ TAMPER DETECTED
   
-🚀 Future Improvements
+##🚀 Future Improvements
 - Digital signatures
 - Advanced document version control
 - AI-assisted document classification
@@ -92,10 +110,10 @@ Original Hash != Current Hash
 - Inter-agency collaboration
 - Automated case report generation
   
-🎓 Project
+##🎓 Project
 Smart India Hackathon 2026
 Team: Error:404
 Secure. Traceable. Verifiable.
 
-⚠️ Disclaimer
+##⚠️ Disclaimer
 This project is an academic/SIH prototype and is not intended for direct production use with real confidential or legal evidence without appropriate security, compliance, and legal validation.
