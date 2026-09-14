@@ -24,34 +24,34 @@ Our platform provides a centralized system to register, store, transfer, track, 
 - 🔒 Secure storage and access control
 
 ## 🔄 Workflow
-Evidence Collection
+    Evidence Collection
         ↓
-Evidence Registration
+    Evidence Registration
         ↓
-Metadata + SHA-256 Hash
+    Metadata + SHA-256 Hash
         ↓
-Secure Storage
+    Secure Storage
         ↓
-QR Generation
+    QR Generation
         ↓
-Transfer / Handover
+    Transfer / Handover
         ↓
-Audit Log
+    Audit Log
         ↓
-Hash Verification
+    Hash Verification
         ↓
-Verified / Tamper Detected
+    Verified / Tamper Detected
 
 ## 🧰 Tech Stack
-Component	  Technology
-Frontend	  HTML, CSS, JavaScript
-Backend	Python,   Flask
-Database	  MySQL
-Integrity	  SHA-256
-Identification	  QR Code
-Storage	          Local / Cloud Storage
-Security	  Authentication, RBAC, Encryption
-Audit	          Hash-linked Audit Log
+    Component	     Technology
+    Frontend	     HTML, CSS, JavaScript
+    Backend	     Python,   Flask
+    Database	     MySQL
+    Integrity	     SHA-256
+    Identification   QR Code
+    Storage	     Local / Cloud Storage
+    Security	     Authentication, RBAC, Encryption
+    Audit	     Hash-linked Audit Log
 
 ## 🏗️ Architecture
 
@@ -88,15 +88,16 @@ Audit	          Hash-linked Audit Log
 ## 🔒 Evidence Verification
 When evidence is registered, a SHA-256 hash is generated.
 The original hash is stored securely and can later be compared with a newly generated hash.
-✅ If the hashes match
-Original Hash == Current Hash
-              ↓
+
+    ✅ If the hashes match
+    Original Hash == Current Hash
+                ↓
           ✅ VERIFIED
 This indicates that the evidence has not changed since the original registration.
 
-⚠️ If the hashes do not match
-Original Hash != Current Hash
-              ↓
+    ⚠️ If the hashes do not match
+    Original Hash != Current Hash
+                ↓
        ⚠️ TAMPER DETECTED
 This indicates that the evidence may have been modified or replaced.
 
