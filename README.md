@@ -29,7 +29,6 @@ Our platform provides a centralized system to register, store, transfer, track, 
 
 ## 🔄 Workflow
 
-```text
 Evidence Collection
         ↓
 Evidence Registration
@@ -47,3 +46,53 @@ Audit Log
 Hash Verification
         ↓
 Verified / Tamper Detected
+
+🛠️ Tch Stack
+Component	  Technology
+Frontend	  HTML, CSS, JavaScript
+Backend	Python,   Flask
+Database	  MySQL
+Integrity	  SHA-256
+Identification	  QR Code
+Storage	          Local / Cloud Storage
+Security	  Authentication, RBAC, Encryption
+Audit	          Hash-linked Audit Log
+
+🏗️ Architecture
+Frontend
+   ↓
+Flask Backend
+   ↓
+MySQL + Secure Storage
+   ↓
+SHA-256 Integrity Verification
+   ↓
+QR / Evidence Tracking
+   ↓
+Audit & Chain of Custody
+
+🔒 Evidence Verification
+When evidence is registered, a SHA-256 hash is generated.
+Original Hash == Current Hash
+        ↓
+    ✓ VERIFIED
+If the evidence is modified:
+Original Hash != Current Hash
+        ↓
+  ⚠ TAMPER DETECTED
+  
+🚀 Future Improvements
+- Digital signatures
+- Advanced document version control
+- AI-assisted document classification
+- Permissioned blockchain integration
+- Inter-agency collaboration
+- Automated case report generation
+  
+🎓 Project
+Smart India Hackathon 2026
+Team: Error:404
+Secure. Traceable. Verifiable.
+
+⚠️ Disclaimer
+This project is an academic/SIH prototype and is not intended for direct production use with real confidential or legal evidence without appropriate security, compliance, and legal validation.
